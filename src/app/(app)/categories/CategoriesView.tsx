@@ -34,7 +34,7 @@ function Section({
   actions: TaskActions;
   menu?: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const panelId = `cat-${id}`;
   return (
     <section className="mb-6">
