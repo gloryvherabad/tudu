@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Ellipsis, Pencil, Plus, Tag, Trash2 } from "lucide-react";
+import { ChevronDown, Ellipsis, Pencil, Plus, Repeat, Tag, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TaskList } from "@/components/tasks/TaskList";
 import { TaskListSkeleton } from "@/components/tasks/TaskListSkeleton";
@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/app-context";
 import { cn } from "@/lib/cn";
 import { CATEGORY_COLORS } from "@/lib/categories";
-import type { Category, CategoryColor, Task } from "@/lib/types";
+import type { Category, CategoryColor, Habit, Task } from "@/lib/types";
 import { useTasks, type TaskActions } from "@/lib/use-tasks";
 import { CategoryFormDialog } from "./CategoryFormDialog";
 
@@ -24,6 +24,7 @@ function Section({
   name,
   dot,
   tasks,
+  habits,
   actions,
   menu,
 }: {
@@ -31,6 +32,7 @@ function Section({
   name: string;
   dot: string;
   tasks: Task[];
+  habits: Habit[];
   actions: TaskActions;
   menu?: React.ReactNode;
 }) {
@@ -52,13 +54,26 @@ function Section({
           />
           <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", dot)} />
           <h2 className="truncate text-subheading">{name}</h2>
-          <span className="text-secondary text-text-secondary">{tasks.length}</span>
+          <span className="text-secondary text-text-secondary">{tasks.length + habits.length}</span>
         </button>
         {menu}
       </div>
       {open && (
         <div id={panelId}>
-          <TaskList tasks={tasks} actions={actions} showDate emptyText="No open tasks" />
+          {habits.length > 0 && (
+            <ul aria-label="Habits" className="divide-y divide-border border-b border-border">
+              {habits.map((h) => (
+                <li key={h.id} className="flex min-h-touch items-center gap-3 py-1">
+                  <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
+                  <span className="shrink-0 text-label text-text-secondary">Habit</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {(tasks.length > 0 || habits.length === 0) && (
+            <TaskList tasks={tasks} actions={actions} showDate emptyText="No tasks" />
+          )}
         </div>
       )}
     </section>
@@ -66,13 +81,12 @@ function Section({
 }
 
 /**
- * Manage categories and see open tasks (today, upcoming and undated) grouped by category.
- * Past tasks are not shown here; find them in Search.
+ * Manage categories and see every task (done or not, any date) and habit, grouped by category.
  */
 export function CategoriesView() {
-  const { supabase, categories, setCategories, today } = useApp();
+  const { supabase, categories, setCategories, habits, setHabits } = useApp();
   const toast = useToast();
-  const { tasks, loading, create, update, remove, reload } = useTasks({ kind: "open", today });
+  const { tasks, loading, create, update, remove, reload } = useTasks({ kind: "all" });
   const actions = { create, update, remove };
 
   const [editing, setEditing] = useState<Category | null | undefined>(undefined); // undefined = closed, null = new
@@ -106,12 +120,14 @@ export function CategoriesView() {
       return;
     }
     setCategories(categories.filter((c) => c.id !== deleting.id));
+    setHabits(habits.map((h) => (h.category_id === deleting.id ? { ...h, category_id: null } : h)));
     toast({ message: `Deleted "${deleting.name}". Its tasks are now uncategorized.` });
     setDeleting(null);
     void reload();
   };
 
   const inCategory = (id: string | null) => tasks.filter((t) => t.category_id === id);
+  const habitsIn = (id: string | null) => habits.filter((h) => h.category_id === id);
   const deletingCount = deleting ? inCategory(deleting.id).length : 0;
 
   return (
@@ -142,7 +158,7 @@ export function CategoriesView() {
       ) : (
         <>
           <p className="mb-6 text-secondary text-text-secondary">
-            Open tasks for today, upcoming days and the Inbox. Past tasks are in Search.
+            All your tasks and habits, done or not.
           </p>
           {categories.map((c) => (
             <Section
@@ -151,6 +167,7 @@ export function CategoriesView() {
               name={c.name}
               dot={CATEGORY_COLORS[c.color].dot}
               tasks={inCategory(c.id)}
+              habits={habitsIn(c.id)}
               actions={actions}
               menu={
                 <Menu
@@ -177,6 +194,7 @@ export function CategoriesView() {
             name="Uncategorized"
             dot="border border-text-disabled"
             tasks={inCategory(null)}
+            habits={habitsIn(null)}
             actions={actions}
           />
         </>
@@ -195,8 +213,8 @@ export function CategoriesView() {
         title={`Delete "${deleting?.name ?? ""}"?`}
         description={
           deletingCount > 0
-            ? `Its ${deletingCount} open ${deletingCount === 1 ? "task moves" : "tasks move"} to Uncategorized, along with any past ones. No tasks are deleted.`
-            : "Any tasks in it move to Uncategorized. No tasks are deleted."
+            ? `Its ${deletingCount} ${deletingCount === 1 ? "task moves" : "tasks move"} to Uncategorized. No tasks are deleted.`
+            : "Any tasks or habits in it move to Uncategorized. Nothing is deleted."
         }
         footer={
           <>
