@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
+import { ChevronLeft } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CalendarHeader, type CalendarViewName } from "@/components/calendar/CalendarHeader";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
+import { MonthStrip } from "@/components/calendar/MonthStrip";
 import { WeekStrip } from "@/components/calendar/WeekStrip";
 import { TaskList } from "@/components/tasks/TaskList";
 import { TaskListSkeleton } from "@/components/tasks/TaskListSkeleton";
@@ -58,6 +60,9 @@ export function CalendarView() {
   const actions = { create, update, remove, reorder };
   const tasksOn = (d: ISODate) => tasks.filter((t) => t.scheduled_date === d);
 
+  const dayTasks = tasksOn(date);
+  const dayDone = dayTasks.filter((t) => t.is_completed).length;
+
   const step = (dir: 1 | -1) => {
     if (view === "day") go({ date: addDays(date, dir) });
     else if (view === "week") go({ date: addDays(date, dir * 7) });
@@ -81,6 +86,8 @@ export function CalendarView() {
         onPrev={() => step(-1)}
         onNext={() => step(1)}
         onToday={() => go({ date: today })}
+        onPrevYear={view === "month" ? () => go({ date: addMonths(date, -12) }) : undefined}
+        onNextYear={view === "month" ? () => go({ date: addMonths(date, 12) }) : undefined}
       />
 
       {view === "week" && (
@@ -114,30 +121,49 @@ export function CalendarView() {
 
       {view === "month" && (
         <>
+          <MonthStrip date={date} today={today} onSelect={(d) => go({ date: d })} />
           <MonthGrid
             gridStart={gridStart}
             month={monthStart.slice(0, 7)}
             today={today}
             selected={date}
             tasks={tasks}
-            onSelect={(d) => go({ date: d })}
+            // Tapping a date opens that day's schedule.
+            onSelect={(d) => go({ view: "day", date: d })}
           />
-          <h3 className="border-b border-border pb-2 text-subheading">{dayLabel(date, today)}</h3>
-          {loading ? (
-            <TaskListSkeleton rows={2} />
-          ) : (
-            <TaskList addTo={date} tasks={tasksOn(date)} actions={actions} emptyText={isLockedDate(date, today) ? "No tasks" : undefined} />
-          )}
+          {loading && <TaskListSkeleton rows={2} />}
         </>
       )}
 
       {view === "day" && (
         <>
-          <h3 className="border-b border-border pb-2 text-subheading">{dayLabel(date, today)}</h3>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+            <button
+              type="button"
+              onClick={() => go({ view: "month" })}
+              className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-secondary font-medium text-text-secondary hover:bg-hover hover:text-text"
+            >
+              <ChevronLeft className="size-4" aria-hidden />
+              Month
+            </button>
+            <p className="flex items-center gap-2 text-secondary text-text-secondary">
+              {date === today && (
+                <span className="rounded-sm bg-primary px-1.5 text-label text-on-primary">Today</span>
+              )}
+              {dayTasks.length === 0
+                ? "Nothing scheduled"
+                : `${dayTasks.length - dayDone} open · ${dayDone} done`}
+            </p>
+          </div>
           {loading ? (
             <TaskListSkeleton />
           ) : (
-            <TaskList addTo={date} tasks={tasksOn(date)} actions={actions} emptyText={isLockedDate(date, today) ? "No tasks" : undefined} />
+            <TaskList
+              addTo={date}
+              tasks={dayTasks}
+              actions={actions}
+              emptyText={isLockedDate(date, today) ? "No tasks" : "Nothing scheduled for this day. Add a task below."}
+            />
           )}
         </>
       )}
