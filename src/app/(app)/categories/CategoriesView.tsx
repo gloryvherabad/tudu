@@ -39,7 +39,7 @@ function Section({
   const [open, setOpen] = useState(false);
   const panelId = `cat-${id}`;
   return (
-    <section className="mb-6">
+    <section className="mb-3">
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -63,7 +63,7 @@ function Section({
           {habits.length > 0 && (
             <ul aria-label="Habits">
               {habits.map((h) => (
-                <li key={h.id} className="flex min-h-touch items-center gap-3 py-1">
+                <li key={h.id} className="flex min-h-touch items-center gap-3">
                   <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
                   <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
                   <span className="shrink-0 text-label text-text-secondary">Habit</span>
@@ -157,7 +157,7 @@ export function CategoriesView() {
         />
       ) : (
         <>
-          <p className="mb-6 text-secondary text-text-secondary">
+          <p className="mb-3 text-secondary text-text-secondary">
             All your tasks and habits, done or not.
           </p>
           {categories.map((c) => (

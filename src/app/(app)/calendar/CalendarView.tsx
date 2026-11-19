@@ -105,7 +105,7 @@ export function CalendarView() {
             <TaskListSkeleton />
           ) : (
             Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((d) => (
-              <section key={d} id={`day-${d}`} aria-labelledby={`day-${d}-h`} className="mb-8 scroll-mt-16">
+              <section key={d} id={`day-${d}`} aria-labelledby={`day-${d}-h`} className="mb-4 scroll-mt-16">
                 <h3
                   id={`day-${d}-h`}
                   className={`pb-2 text-subheading ${isLockedDate(d, today) ? "text-text-disabled" : ""}`}

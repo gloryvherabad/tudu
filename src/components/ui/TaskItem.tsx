@@ -93,7 +93,7 @@ export function TaskItem({
   ];
 
   return (
-    <div className="group/task flex gap-3 py-3 pointer-fine:hover:bg-surface/60">
+    <div className="group/task flex gap-3 py-1.5 pointer-fine:hover:bg-surface/60">
       <div className="pt-0.5">
         <TaskCheck
           checked={completed}
@@ -176,12 +176,12 @@ export function TaskItem({
           )}
         </div>
 
-        <div className="mt-1 flex min-h-5 items-center justify-between gap-3">
-          <span className={cn("text-secondary", locked ? "text-text-disabled" : "text-text-secondary")}>{meta}</span>
-          {category && (
-            <CategoryBadge name={category.name} color={category.color} />
-          )}
-        </div>
+        {(meta || category) && (
+          <div className="mt-0.5 flex min-h-5 items-center justify-between gap-3">
+            <span className={cn("text-secondary", locked ? "text-text-disabled" : "text-text-secondary")}>{meta}</span>
+            {category && <CategoryBadge name={category.name} color={category.color} />}
+          </div>
+        )}
       </div>
     </div>
   );

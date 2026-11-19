@@ -91,18 +91,18 @@ export function HabitsView() {
         />
       ) : (
         <>
-          <p className="mb-6 text-secondary text-text-secondary">
+          <p className="mb-3 text-secondary text-text-secondary">
             When adding a task, type / and the first letters of a habit to add it in one step.
           </p>
           {groups.map((g) => (
-            <section key={g.id} aria-labelledby={`habits-${g.id}`} className="mb-8">
+            <section key={g.id} aria-labelledby={`habits-${g.id}`} className="mb-4">
               <h2 id={`habits-${g.id}`} className="flex items-center gap-2 pb-1 text-subheading">
                 <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} />
                 <span className="truncate">{g.name}</span>
               </h2>
               <ul>
                 {g.habits.map((h) => (
-                  <li key={h.id} className="flex min-h-touch items-center gap-3 py-1">
+                  <li key={h.id} className="flex min-h-touch items-center gap-3">
                     <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
                     <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
                     <Menu
