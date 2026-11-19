@@ -1,9 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isSafePath } from "@/lib/safe-path";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/setup-needed"];
 
-/** Refreshes the Supabase session cookie and guards app routes. */
+
 /** True when the Supabase settings are present and the URL looks valid. */
 export function isSupabaseConfigured() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,6 +20,24 @@ export function isSupabaseConfigured() {
   }
 }
 
+/**
+ * A redirect that keeps any session cookies Supabase just refreshed or cleared.
+ * Without this, a refreshed session would be dropped and the next request would
+ * try to reuse the old refresh token, which can sign the user out.
+ */
+function redirectWithCookies(url: URL, from: NextResponse) {
+  const res = NextResponse.redirect(url);
+  from.cookies.getAll().forEach((c) => res.cookies.set(c));
+  return res;
+}
+
+/**
+ * Runs on every request: restores the session from its cookies, refreshes it
+ * when the access token has expired, and guards app routes. Sessions live in
+ * Supabase's own HTTP cookies (never localStorage), so users stay signed in
+ * across refreshes and browser restarts until the session expires, is revoked
+ * or they sign out.
+ */
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -61,15 +80,21 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
-    return NextResponse.redirect(url);
+    // Come back to the same page after signing in again.
+    if (path !== "/") url.searchParams.set("next", path + request.nextUrl.search);
+    return redirectWithCookies(url, response);
   }
 
   if (user && path === "/login") {
+    const next = request.nextUrl.searchParams.get("next");
     const url = request.nextUrl.clone();
     url.pathname = "/today";
     url.search = "";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(next && isSafePath(next) ? new URL(next, request.url) : url, response);
   }
+
+  // Signed-in pages must never be served from a shared or back/forward cache after sign-out.
+  if (user && !isPublic) response.headers.set("Cache-Control", "private, no-store");
 
   return response;
 }

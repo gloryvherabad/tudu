@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isSafePath } from "@/lib/safe-path";
 import { createClient } from "@/lib/supabase/server";
 
 /** Google sends the user back here with a one-time code, which we swap for a session. */
@@ -6,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const nextParam = searchParams.get("next") ?? "/today";
-  const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/today";
+  const next = isSafePath(nextParam) ? nextParam : "/today";
 
   if (code) {
     const supabase = await createClient();

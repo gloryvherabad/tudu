@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { todayIn, type ISODate } from "@/lib/dates";
@@ -41,6 +42,7 @@ export function AppProvider({
   children: ReactNode;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const [profile, setProfile] = useState(initialProfile);
   const [categories, setCategories] = useState(initialCategories);
   const [habits, setHabits] = useState(initialHabits);
@@ -57,6 +59,33 @@ export function AppProvider({
       document.removeEventListener("visibilitychange", tick);
     };
   }, [profile.timezone]);
+
+  // Leave the app as soon as the session ends: signed out in another tab,
+  // expired, or revoked. Supabase refreshes the token on its own while it is valid.
+  useEffect(() => {
+    const toLogin = () => {
+      router.replace("/login");
+      router.refresh();
+    };
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") toLogin();
+    });
+    // Sign-out happens on the server, which only clears cookies. Check them when
+    // the tab comes back into view or the page is restored with the Back button.
+    const check = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { data: s } = await supabase.auth.getSession();
+      if (!s.session) toLogin();
+    };
+    const onShow = (e: PageTransitionEvent) => e.persisted && void check();
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      data.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, [supabase, router]);
 
   // First visit: adopt the device timezone if the profile still has the default.
   useEffect(() => {

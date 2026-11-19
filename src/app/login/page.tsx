@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { isSafePath } from "@/lib/safe-path";
 import { LoginButton } from "./LoginButton";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const { error, next } = await searchParams;
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
@@ -12,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h1 className="text-title">tudu</h1>
         <p className="mt-2 text-body text-text-secondary">A calm place for today&apos;s tasks.</p>
         <div className="mt-8">
-          <LoginButton />
+          <LoginButton next={next && isSafePath(next) ? next : undefined} />
         </div>
         {error && (
           <p role="alert" className="mt-4 text-secondary text-error">
