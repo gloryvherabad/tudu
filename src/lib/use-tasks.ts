@@ -16,8 +16,8 @@ import { parseLeadingTime } from "@/lib/time";
 export type TaskQuery =
   | { kind: "range"; from: ISODate; to: ISODate }
   | { kind: "inbox" }
-  /** Not done, and undated or not yet past (used by Categories). */
-  | { kind: "open"; today: ISODate }
+  /** Every task, done or not, any date (used by Categories). */
+  | { kind: "all" }
   | {
       kind: "search";
       text: string;
@@ -39,7 +39,7 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 function matches(t: Task, q: TaskQuery): boolean {
   if (t.deleted_at) return false;
   if (q.kind === "inbox") return t.scheduled_date === null;
-  if (q.kind === "open") return !t.is_completed && (t.scheduled_date === null || t.scheduled_date >= q.today);
+  if (q.kind === "all") return true;
   if (q.kind === "range") return t.scheduled_date !== null && t.scheduled_date >= q.from && t.scheduled_date <= q.to;
   if (q.text && !t.title.toLowerCase().includes(q.text.toLowerCase())) return false;
   if (q.category === "none" && t.category_id !== null) return false;
@@ -104,11 +104,8 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
       req = req.gte("scheduled_date", q.from).lte("scheduled_date", q.to).order("sort_order", { ascending: true });
     } else if (q.kind === "inbox") {
       req = req.is("scheduled_date", null).order("sort_order", { ascending: true });
-    } else if (q.kind === "open") {
-      req = req
-        .eq("is_completed", false)
-        .or(`scheduled_date.is.null,scheduled_date.gte.${q.today}`)
-        .order("sort_order", { ascending: true });
+    } else if (q.kind === "all") {
+      req = req.order("sort_order", { ascending: true });
     } else {
       if (q.text.trim()) req = req.ilike("title", `%${escapeLike(q.text.trim())}%`);
       if (q.category === "none") req = req.is("category_id", null);
