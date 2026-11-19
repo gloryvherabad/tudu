@@ -40,7 +40,7 @@ function Section({
   const panelId = `cat-${id}`;
   return (
     <section className="mb-6">
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="flex items-center gap-1">
         <button
           type="button"
           aria-expanded={open}
@@ -61,7 +61,7 @@ function Section({
       {open && (
         <div id={panelId}>
           {habits.length > 0 && (
-            <ul aria-label="Habits" className="divide-y divide-border border-b border-border">
+            <ul aria-label="Habits">
               {habits.map((h) => (
                 <li key={h.id} className="flex min-h-touch items-center gap-3 py-1">
                   <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
