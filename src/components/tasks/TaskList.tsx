@@ -178,7 +178,7 @@ export function TaskList({
   return (
     <div>
       {ordered.length === 0 && emptyText && (
-        <p className="py-3 text-secondary text-text-secondary">
+        <p className="py-1.5 text-secondary text-text-secondary">
           {emptyText}
         </p>
       )}
