@@ -34,7 +34,7 @@ export function CalendarView() {
   const params = useSearchParams();
 
   const viewParam = params.get("view");
-  const view: CalendarViewName = VIEWS.includes(viewParam as CalendarViewName) ? (viewParam as CalendarViewName) : "week";
+  const view: CalendarViewName = VIEWS.includes(viewParam as CalendarViewName) ? (viewParam as CalendarViewName) : "month";
   const dateParam = params.get("date");
   const date: ISODate = isValidISODate(dateParam) ? dateParam : today;
   const weekStartsOn = profile.week_starts_on;
