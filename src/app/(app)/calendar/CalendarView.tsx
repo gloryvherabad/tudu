@@ -108,7 +108,7 @@ export function CalendarView() {
               <section key={d} id={`day-${d}`} aria-labelledby={`day-${d}-h`} className="mb-8 scroll-mt-16">
                 <h3
                   id={`day-${d}-h`}
-                  className={`border-b border-border pb-2 text-subheading ${isLockedDate(d, today) ? "text-text-disabled" : ""}`}
+                  className={`pb-2 text-subheading ${isLockedDate(d, today) ? "text-text-disabled" : ""}`}
                 >
                   {dayLabel(d, today)}
                 </h3>
@@ -137,7 +137,7 @@ export function CalendarView() {
 
       {view === "day" && (
         <>
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 pb-3">
             <button
               type="button"
               onClick={() => go({ view: "month" })}

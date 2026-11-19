@@ -93,7 +93,7 @@ export function TaskItem({
   ];
 
   return (
-    <div className="group/task flex gap-3 border-b border-border py-3 pointer-fine:hover:bg-surface/60">
+    <div className="group/task flex gap-3 py-3 pointer-fine:hover:bg-surface/60">
       <div className="pt-0.5">
         <TaskCheck
           checked={completed}
