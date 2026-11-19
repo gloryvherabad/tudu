@@ -15,7 +15,7 @@ import { cn } from "@/lib/cn";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import type { Category, CategoryColor, Habit, Task } from "@/lib/types";
 import { useTasks, type TaskActions } from "@/lib/use-tasks";
-import { CategoryFormDialog } from "./CategoryFormDialog";
+import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 
 const sortByName = (cs: Category[]) => [...cs].sort((a, b) => a.name.localeCompare(b.name));
 

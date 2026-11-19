@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Ellipsis, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import { Dialog } from "@/components/ui/Dialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Menu } from "@/components/ui/Menu";
 import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/app-context";
+import { CATEGORY_COLORS } from "@/lib/categories";
+import { cn } from "@/lib/cn";
 import type { Habit } from "@/lib/types";
 import { HabitFormDialog } from "./HabitFormDialog";
 
@@ -39,6 +40,17 @@ export function HabitsView() {
     setEditing(undefined);
     return null;
   };
+
+  // Habits grouped under their category, in category order; Uncategorized last. Empty groups are hidden.
+  const groups = [
+    ...categories.map((c) => ({ id: c.id, name: c.name, dot: CATEGORY_COLORS[c.color].dot, habits: habits.filter((h) => h.category_id === c.id) })),
+    {
+      id: "none",
+      name: "Uncategorized",
+      dot: "border border-text-disabled",
+      habits: habits.filter((h) => !h.category_id || !categories.some((c) => c.id === h.category_id)),
+    },
+  ].filter((g) => g.habits.length > 0);
 
   const deleteHabit = async () => {
     if (!deleting) return;
@@ -79,37 +91,41 @@ export function HabitsView() {
         />
       ) : (
         <>
-          <p className="mb-4 text-secondary text-text-secondary">
+          <p className="mb-6 text-secondary text-text-secondary">
             When adding a task, type / and the first letters of a habit to add it in one step.
           </p>
-          <ul className="divide-y divide-border border-y border-border">
-            {habits.map((h) => {
-              const c = categories.find((cat) => cat.id === h.category_id);
-              return (
-                <li key={h.id} className="flex min-h-touch items-center gap-3 py-1">
-                  <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
-                  {c && <CategoryBadge name={c.name} color={c.color} className="shrink-0" />}
-                  <Menu
-                    items={[
-                      { label: "Edit habit", icon: <Pencil className="size-4" />, onSelect: () => setEditing(h) },
-                      { label: "Delete habit", icon: <Trash2 className="size-4" />, destructive: true, onSelect: () => setDeleting(h) },
-                    ]}
-                    trigger={(p) => (
-                      <button
-                        {...p}
-                        type="button"
-                        aria-label={`Actions for habit "${h.title}"`}
-                        className="inline-flex size-9 items-center justify-center rounded-md text-text-secondary hover:bg-hover hover:text-text"
-                      >
-                        <Ellipsis className="size-4" aria-hidden />
-                      </button>
-                    )}
-                  />
-                </li>
-              );
-            })}
-          </ul>
+          {groups.map((g) => (
+            <section key={g.id} aria-labelledby={`habits-${g.id}`} className="mb-8">
+              <h2 id={`habits-${g.id}`} className="flex items-center gap-2 pb-1 text-subheading">
+                <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} />
+                <span className="truncate">{g.name}</span>
+              </h2>
+              <ul>
+                {g.habits.map((h) => (
+                  <li key={h.id} className="flex min-h-touch items-center gap-3 py-1">
+                    <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
+                    <Menu
+                      items={[
+                        { label: "Edit habit", icon: <Pencil className="size-4" />, onSelect: () => setEditing(h) },
+                        { label: "Delete habit", icon: <Trash2 className="size-4" />, destructive: true, onSelect: () => setDeleting(h) },
+                      ]}
+                      trigger={(p) => (
+                        <button
+                          {...p}
+                          type="button"
+                          aria-label={`Actions for habit "${h.title}"`}
+                          className="inline-flex size-9 items-center justify-center rounded-md text-text-secondary hover:bg-hover hover:text-text"
+                        >
+                          <Ellipsis className="size-4" aria-hidden />
+                        </button>
+                      )}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         </>
       )}
 

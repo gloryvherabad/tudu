@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
+import { ADD_CATEGORY, NewCategoryDialog } from "@/components/categories/NewCategoryDialog";
 import type { Category, Habit } from "@/lib/types";
 
 /** Create a habit, or edit an existing one. */
@@ -25,6 +26,7 @@ export function HabitFormDialog({
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
   const titleId = useId();
   const categoryFieldId = useId();
   const errorId = useId();
@@ -49,64 +51,75 @@ export function HabitFormDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={habit ? "Edit habit" : "New habit"}
-      footer={
-        <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" loading={saving} onClick={save}>
-            {habit ? "Save changes" : "Create habit"}
-          </Button>
-        </>
-      }
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void save();
-        }}
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title={habit ? "Edit habit" : "New habit"}
+        footer={
+          <>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button variant="primary" loading={saving} onClick={save}>
+              {habit ? "Save changes" : "Create habit"}
+            </Button>
+          </>
+        }
       >
-        <label htmlFor={titleId} className="block text-label text-text-secondary">
-          Name
-        </label>
-        <input
-          id={titleId}
-          autoFocus
-          value={title}
-          maxLength={500}
-          aria-invalid={!!error}
-          aria-describedby={error ? errorId : undefined}
-          onChange={(e) => {
-            setTitle(e.target.value);
-            if (error) setError(null);
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
           }}
-          className="mt-1 h-10 w-full rounded-md border border-border-strong bg-bg px-3 text-body focus:border-primary focus:outline-none aria-invalid:border-error"
-        />
-        {error && (
-          <p id={errorId} role="alert" className="mt-1 text-secondary text-error">
-            {error}
-          </p>
-        )}
-
-        <label htmlFor={categoryFieldId} className="mt-4 block text-label text-text-secondary">
-          Category
-        </label>
-        <select
-          id={categoryFieldId}
-          value={categoryId ?? ""}
-          onChange={(e) => setCategoryId(e.target.value || null)}
-          className="mt-1 h-10 w-full rounded-md border border-border-strong bg-bg px-3 text-body focus:border-primary focus:outline-none"
         >
-          <option value="">No category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </form>
-    </Dialog>
+          <label htmlFor={titleId} className="block text-label text-text-secondary">
+            Name
+          </label>
+          <input
+            id={titleId}
+            autoFocus
+            value={title}
+            maxLength={500}
+            aria-invalid={!!error}
+            aria-describedby={error ? errorId : undefined}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (error) setError(null);
+            }}
+            className="mt-1 h-10 w-full rounded-md border border-border-strong bg-bg px-3 text-body focus:border-primary focus:outline-none aria-invalid:border-error"
+          />
+          {error && (
+            <p id={errorId} role="alert" className="mt-1 text-secondary text-error">
+              {error}
+            </p>
+          )}
+
+          <label htmlFor={categoryFieldId} className="mt-4 block text-label text-text-secondary">
+            Category
+          </label>
+          <select
+            id={categoryFieldId}
+            value={categoryId ?? ""}
+            onChange={(e) => {
+              if (e.target.value === ADD_CATEGORY) setAddingCategory(true);
+              else setCategoryId(e.target.value || null);
+            }}
+            className="mt-1 h-10 w-full rounded-md border border-border-strong bg-bg px-3 text-body focus:border-primary focus:outline-none"
+          >
+            <option value="">No category</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+            <option value={ADD_CATEGORY}>+ Add category</option>
+          </select>
+        </form>
+      </Dialog>
+      <NewCategoryDialog
+        open={addingCategory}
+        onClose={() => setAddingCategory(false)}
+        onCreated={(c) => setCategoryId(c.id)}
+      />
+    </>
   );
 }

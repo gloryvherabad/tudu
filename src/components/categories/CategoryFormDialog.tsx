@@ -105,7 +105,7 @@ export function CategoryFormDialog({
               aria-label={CATEGORY_COLORS[c].label}
               onClick={() => setColor(c)}
               className={cn(
-                "inline-flex size-9 items-center justify-center rounded-full border-2",
+                "inline-flex size-9 items-center justify-center rounded-full border",
                 color === c ? "border-primary" : "border-transparent hover:border-border-strong",
               )}
             >
