@@ -16,6 +16,8 @@ import { parseLeadingTime } from "@/lib/time";
 export type TaskQuery =
   | { kind: "range"; from: ISODate; to: ISODate }
   | { kind: "inbox" }
+  /** Every task in one project, done or not. */
+  | { kind: "project"; projectId: string }
   /** Every task, done or not, any date (used by Categories). */
   | { kind: "all" }
   | {
@@ -38,7 +40,9 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 /** Same rules as the database query, used to keep the local list correct after edits. */
 function matches(t: Task, q: TaskQuery): boolean {
   if (t.deleted_at) return false;
-  if (q.kind === "inbox") return t.scheduled_date === null;
+  // Project tasks live in their project, not in the Inbox.
+  if (q.kind === "inbox") return t.scheduled_date === null && !t.project_id;
+  if (q.kind === "project") return t.project_id === q.projectId;
   if (q.kind === "all") return true;
   if (q.kind === "range") return t.scheduled_date !== null && t.scheduled_date >= q.from && t.scheduled_date <= q.to;
   if (q.text && !t.title.toLowerCase().includes(q.text.toLowerCase())) return false;
@@ -103,7 +107,10 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
     if (q.kind === "range") {
       req = req.gte("scheduled_date", q.from).lte("scheduled_date", q.to).order("sort_order", { ascending: true });
     } else if (q.kind === "inbox") {
+      // Project tasks are filtered out after loading, so the Inbox keeps working before the projects migration.
       req = req.is("scheduled_date", null).order("sort_order", { ascending: true });
+    } else if (q.kind === "project") {
+      req = req.eq("project_id", q.projectId).order("sort_order", { ascending: true });
     } else if (q.kind === "all") {
       req = req.order("sort_order", { ascending: true });
     } else {
@@ -127,7 +134,7 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
     // A change happened while loading: the result may be stale, so load again.
     if (mutationsAtStart !== mutationsRef.current) return load();
     if (error) toast({ message: "Couldn't load your tasks. Try refreshing.", tone: "error" });
-    else setTasks([...(data as Task[])].sort(sortTasks(q)));
+    else setTasks((data as Task[]).filter((t) => matches(t, q)).sort(sortTasks(q)));
     setLoading(false);
   }, [supabase, toast]);
 
@@ -156,7 +163,12 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
     });
   };
 
-  const create = async (rawTitle: string, date: ISODate | null, categoryId: string | null = null) => {
+  const create = async (
+    rawTitle: string,
+    date: ISODate | null,
+    categoryId: string | null = null,
+    projectId: string | null = null,
+  ) => {
     // "8am gym" becomes the title "gym" at 08:00.
     const parsed = parseLeadingTime(rawTitle);
     const title = parsed?.title ?? rawTitle;
@@ -167,6 +179,7 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
       id: tempId,
       user_id: "",
       category_id: categoryId,
+      project_id: projectId,
       title,
       start_time,
       scheduled_date: date,
@@ -180,7 +193,7 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
     replace(tempId, temp);
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ title, start_time, scheduled_date: date, category_id: categoryId })
+      .insert({ title, start_time, scheduled_date: date, category_id: categoryId, ...(projectId ? { project_id: projectId } : {}) })
       .select()
       .single();
     if (error) {
@@ -194,7 +207,9 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
   const update = async (task: Task, patch: TaskPatch) => {
     if (task.id.startsWith("temp-")) return false;
     // Ticking off an Inbox task files it under the day it was done.
-    const movedFromInbox = patch.is_completed === true && task.scheduled_date === null && patch.scheduled_date === undefined;
+    // Project tasks stay in their project.
+    const movedFromInbox =
+      patch.is_completed === true && task.scheduled_date === null && !task.project_id && patch.scheduled_date === undefined;
     if (movedFromInbox) patch = { ...patch, scheduled_date: today };
     // A task moved to another day goes to the end of that day's list.
     if (patch.scheduled_date !== undefined && patch.scheduled_date !== task.scheduled_date && patch.sort_order === undefined) {
