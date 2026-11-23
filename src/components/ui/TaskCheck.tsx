@@ -25,7 +25,7 @@ export function TaskCheck({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "group/check relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px]",
+        "group/check relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border",
         "transition-colors duration-150 ease-out",
         "after:absolute after:-inset-3 after:content-['']", // 44px hit area
         checked
