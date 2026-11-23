@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { CalendarHeader, type CalendarViewName } from "@/components/calendar/CalendarHeader";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
 import { MonthStrip } from "@/components/calendar/MonthStrip";
+import { WeekBoard } from "@/components/calendar/WeekBoard";
 import { WeekStrip } from "@/components/calendar/WeekStrip";
 import { TaskList } from "@/components/tasks/TaskList";
 import { TaskListSkeleton } from "@/components/tasks/TaskListSkeleton";
@@ -92,30 +93,47 @@ export function CalendarView() {
 
       {view === "week" && (
         <>
-          <WeekStrip
-            weekStart={weekStart}
-            today={today}
-            selected={date}
-            onSelect={(d) => {
-              go({ date: d });
-              document.getElementById(`day-${d}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          />
-          {loading ? (
-            <TaskListSkeleton />
-          ) : (
-            Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((d) => (
-              <section key={d} id={`day-${d}`} aria-labelledby={`day-${d}-h`} className="mb-4 scroll-mt-16">
-                <h3
-                  id={`day-${d}-h`}
-                  className={`pb-2 text-subheading ${isLockedDate(d, today) ? "text-text-disabled" : ""}`}
-                >
-                  {dayLabel(d, today)}
-                </h3>
-                <TaskList addTo={d} tasks={tasksOn(d)} actions={actions} emptyText={isLockedDate(d, today) ? "No tasks" : undefined} />
-              </section>
-            ))
-          )}
+          {/* Tablet and up: the whole week side by side. */}
+          <div data-wide className="hidden md:block">
+            {loading ? (
+              <TaskListSkeleton />
+            ) : (
+              <WeekBoard
+                weekStart={weekStart}
+                today={today}
+                tasks={tasks}
+                actions={actions}
+                onOpenDay={(d) => go({ view: "day", date: d })}
+              />
+            )}
+          </div>
+          {/* Phones: one day under another. */}
+          <div className="md:hidden">
+            <WeekStrip
+              weekStart={weekStart}
+              today={today}
+              selected={date}
+              onSelect={(d) => {
+                go({ date: d });
+                document.getElementById(`day-${d}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
+            {loading ? (
+              <TaskListSkeleton />
+            ) : (
+              Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((d) => (
+                <section key={d} id={`day-${d}`} aria-labelledby={`day-${d}-h`} className="mb-4 scroll-mt-16">
+                  <h3
+                    id={`day-${d}-h`}
+                    className={`pb-2 text-subheading ${isLockedDate(d, today) ? "text-text-disabled" : ""}`}
+                  >
+                    {dayLabel(d, today)}
+                  </h3>
+                  <TaskList addTo={d} tasks={tasksOn(d)} actions={actions} emptyText={isLockedDate(d, today) ? "No tasks" : undefined} />
+                </section>
+              ))
+            )}
+          </div>
         </>
       )}
 

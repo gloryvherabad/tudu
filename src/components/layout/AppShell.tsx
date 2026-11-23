@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Settings className="size-5" aria-hidden />
           </Link>
         </header>
-        <main className="mx-auto w-full max-w-content flex-1 px-4 pt-6 pb-[calc(var(--spacing-bottom-nav)+2rem)] sm:px-8 md:pt-12 md:pb-16">
+        <main className="mx-auto w-full max-w-content flex-1 has-[[data-wide]]:max-w-7xl px-4 pt-6 pb-[calc(var(--spacing-bottom-nav)+2rem)] sm:px-8 md:pt-12 md:pb-16">
           {children}
         </main>
       </div>
