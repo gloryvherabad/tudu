@@ -84,7 +84,7 @@ export function friendlyError(err: { code?: string; message?: string } | null): 
  */
 export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) {
   const enabled = options.enabled ?? true;
-  const { supabase } = useApp();
+  const { supabase, today } = useApp();
   const toast = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(enabled);
@@ -193,6 +193,9 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
 
   const update = async (task: Task, patch: TaskPatch) => {
     if (task.id.startsWith("temp-")) return false;
+    // Ticking off an Inbox task files it under the day it was done.
+    const movedFromInbox = patch.is_completed === true && task.scheduled_date === null && patch.scheduled_date === undefined;
+    if (movedFromInbox) patch = { ...patch, scheduled_date: today };
     // A task moved to another day goes to the end of that day's list.
     if (patch.scheduled_date !== undefined && patch.scheduled_date !== task.scheduled_date && patch.sort_order === undefined) {
       patch = { ...patch, sort_order: Date.now() };
@@ -211,6 +214,7 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
       return false;
     }
     replace(task.id, data as Task);
+    if (movedFromInbox) toast({ message: `Done. Moved to today's list.` });
     return true;
   };
 
