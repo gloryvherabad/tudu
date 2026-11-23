@@ -35,10 +35,19 @@ export type Habit = {
   created_at: string;
 };
 
+export type Project = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   user_id: string;
   category_id: string | null;
+  /** Project the task belongs to. Missing until the projects migration (0007) has been run. */
+  project_id?: string | null;
   title: string;
   /** Time of day ("HH:MM" or "HH:MM:SS"), or null when the task has no time. */
   start_time: string | null;

@@ -94,6 +94,7 @@ export function TaskList({
   addTo,
   defaultCategoryId = null,
   showDate = false,
+  showTimestamps = false,
   keepOrder = false,
   emptyText,
 }: {
@@ -104,11 +105,13 @@ export function TaskList({
   defaultCategoryId?: string | null;
   /** Show each task's date (or "Undated") under its title. */
   showDate?: boolean;
+  /** Show when each task was created and completed, with the time. */
+  showTimestamps?: boolean;
   /** Keep the given order instead of moving completed tasks to the end. */
   keepOrder?: boolean;
   emptyText?: string;
 }) {
-  const { today, categories, habits, loadSuggestions } = useApp();
+  const { today, profile, categories, habits, loadSuggestions } = useApp();
   const [rescheduling, setRescheduling] = useState<Task | null>(null);
   const [categorizing, setCategorizing] = useState<Task | null>(null);
 
@@ -161,8 +164,24 @@ export function TaskList({
   const categoryFor = (t: Task) =>
     categories.find((c) => c.id === t.category_id) ?? null;
 
+  const stamp = (iso: string) =>
+    new Intl.DateTimeFormat(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: profile.timezone,
+    }).format(new Date(iso));
+
   const metaFor = (t: Task) => {
     const parts: string[] = [];
+    if (showTimestamps) {
+      if (t.scheduled_date) parts.push(shortDateLabel(t.scheduled_date, today));
+      if (!t.id.startsWith("temp-")) parts.push(`Created ${stamp(t.created_at)}`);
+      if (t.is_completed && t.completed_at) parts.push(`Completed ${stamp(t.completed_at)}`);
+      return parts.join(" · ") || undefined;
+    }
     if (showDate)
       parts.push(
         t.scheduled_date ? shortDateLabel(t.scheduled_date, today) : "Undated",
