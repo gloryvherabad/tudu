@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { addDays, formatDate, isLockedDate, type ISODate } from "@/lib/dates";
@@ -11,7 +13,8 @@ import type { TaskActions } from "@/lib/use-tasks";
 
 /**
  * The whole week side by side: one column per day with its tasks.
- * Tick tasks off right here; click a day's heading to open that day and add or edit tasks.
+ * Tick tasks off right here; click a day's heading to open that day and edit tasks.
+ * Hovering a day's column shows "Add task" for that day (always shown on touch screens).
  */
 export function WeekBoard({
   weekStart,
@@ -37,7 +40,11 @@ export function WeekBoard({
         const list = tasks.filter((t) => t.scheduled_date === d);
         const ordered = [...list.filter((t) => !t.is_completed), ...list.filter((t) => t.is_completed)];
         return (
-          <section key={d} aria-label={formatDate(d, { weekday: "long", day: "numeric", month: "long" })} className="min-w-0">
+          <section
+            key={d}
+            aria-label={formatDate(d, { weekday: "long", day: "numeric", month: "long" })}
+            className="group/day flex min-h-48 min-w-0 flex-col"
+          >
             <button
               type="button"
               onClick={() => onOpenDay(d)}
@@ -89,9 +96,84 @@ export function WeekBoard({
                 );
               })}
             </ul>
+
+            {!locked && <AddToDay onCreate={(title) => actions.create(title, d)} />}
           </section>
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Compact "Add task" for one week column.
+ * Hidden until the column is hovered or focused, so the board stays clean.
+ * Enter adds the task and keeps the field open for the next one; Escape closes it.
+ * "8am gym" still sets the time, same as everywhere else.
+ */
+function AddToDay({ onCreate }: { onCreate: (title: string) => void | Promise<unknown> }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const close = () => {
+    setValue("");
+    setOpen(false);
+    requestAnimationFrame(() => buttonRef.current?.focus());
+  };
+
+  const submit = () => {
+    const title = value.trim();
+    if (!title) return;
+    setValue("");
+    void onCreate(title);
+  };
+
+  if (open) {
+    return (
+      <form
+        className="mt-1"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <input
+          autoFocus
+          aria-label="New task"
+          value={value}
+          maxLength={500}
+          placeholder="Task name"
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return;
+            if (e.key === "Escape") {
+              e.preventDefault();
+              close();
+            }
+          }}
+          // Clicking away closes it, unless something is typed.
+          onBlur={() => !value.trim() && close()}
+          className="h-9 w-full rounded-md border border-border-strong bg-bg px-2 text-secondary outline-none placeholder:text-text-disabled focus:border-primary"
+        />
+      </form>
+    );
+  }
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      onClick={() => setOpen(true)}
+      className={cn(
+        "mt-1 flex min-h-9 w-full items-center gap-1.5 rounded-md px-1.5 text-left text-secondary text-text-secondary",
+        "hover:bg-hover hover:text-text",
+        // Shown on column hover or keyboard focus; always visible where there is no hover (touch).
+        "opacity-0 transition-opacity group-hover/day:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100",
+      )}
+    >
+      <Plus className="size-4 shrink-0" aria-hidden />
+      Add task
+    </button>
   );
 }
