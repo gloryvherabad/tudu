@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { Plus } from "lucide-react";
+
 import { cn } from "@/lib/cn";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { addDays, formatDate, isLockedDate, type ISODate } from "@/lib/dates";
@@ -37,7 +40,11 @@ export function WeekBoard({
         const list = tasks.filter((t) => t.scheduled_date === d);
         const ordered = [...list.filter((t) => !t.is_completed), ...list.filter((t) => t.is_completed)];
         return (
-          <section key={d} aria-label={formatDate(d, { weekday: "long", day: "numeric", month: "long" })} className="min-w-0">
+          <section
+            key={d}
+            aria-label={formatDate(d, { weekday: "long", day: "numeric", month: "long" })}
+            className="group/day min-h-48 min-w-0"
+          >
             <button
               type="button"
               onClick={() => onOpenDay(d)}
@@ -89,9 +96,68 @@ export function WeekBoard({
                 );
               })}
             </ul>
+            {!locked && <AddTask onAdd={(title) => actions.create(title, d)} />}
           </section>
         );
       })}
     </div>
+  );
+}
+
+/** "Add task" under a day's tasks: shows on hover (always on touch), turns into a field when clicked. */
+function AddTask({ onAdd }: { onAdd: (title: string) => void | Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+
+  const submit = () => {
+    const title = value.trim();
+    if (title) void onAdd(title);
+    setValue("");
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "mt-1 flex w-full items-center gap-1.5 rounded-md p-1.5 text-secondary text-text-secondary hover:bg-hover hover:text-text",
+          "pointer-fine:opacity-0 pointer-fine:group-hover/day:opacity-100 pointer-fine:focus-visible:opacity-100",
+        )}
+      >
+        <Plus className="size-4 shrink-0" aria-hidden />
+        Add task
+      </button>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="mt-1"
+    >
+      <input
+        autoFocus
+        aria-label="New task"
+        value={value}
+        maxLength={500}
+        placeholder="Task name"
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setValue("");
+            setOpen(false);
+          }
+        }}
+        onBlur={() => {
+          submit();
+          setOpen(false);
+        }}
+        className="w-full rounded-md border border-border-strong bg-bg p-1.5 text-secondary focus:border-primary focus:outline-none"
+      />
+    </form>
   );
 }
