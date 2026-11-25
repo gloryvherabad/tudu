@@ -19,6 +19,8 @@ export type TaskItemProps = {
   meta?: string;
   /** Locked tasks are read-only (their day has ended). */
   locked?: boolean;
+  /** Cross out the title when completed. Off for tasks on past days. */
+  strike?: boolean;
   onToggle?: (completed: boolean) => void;
   onRename?: (title: string) => void;
   onReschedule?: () => void;
@@ -39,6 +41,7 @@ export function TaskItem({
   category,
   meta,
   locked = false,
+  strike = true,
   onToggle,
   onRename,
   onReschedule,
@@ -145,7 +148,7 @@ export function TaskItem({
                 className={cn(
                   "-mx-1 block w-full rounded-sm px-1 text-left text-body break-words",
                   "disabled:cursor-default",
-                  completed && "line-through",
+                  completed && strike && "line-through",
                   completed || locked ? "text-text-disabled" : "text-text",
                 )}
               >

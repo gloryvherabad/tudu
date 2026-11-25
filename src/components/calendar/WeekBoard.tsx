@@ -79,7 +79,7 @@ export function WeekBoard({
                       onClick={() => onOpenDay(d)}
                       className={cn(
                         "min-w-0 flex-1 text-left text-secondary break-words",
-                        t.is_completed ? "text-text-disabled line-through" : "text-text",
+                        t.is_completed ? cn("text-text-disabled", d >= today && "line-through") : "text-text",
                       )}
                     >
                       {t.start_time && <span className="font-medium tabular-nums">{formatTimeOfDay(t.start_time)} </span>}
