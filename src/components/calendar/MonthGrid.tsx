@@ -104,7 +104,7 @@ export function MonthGrid({
                       className={cn(
                         "flex min-w-0 items-center gap-1 rounded-sm px-1 text-label",
                         chipColor(categoryOf(t)),
-                        t.is_completed && "line-through opacity-50",
+                        t.is_completed && cn("opacity-50", d >= today && "line-through"),
                       )}
                     >
                       {t.start_time && (

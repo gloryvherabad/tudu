@@ -262,6 +262,8 @@ export function TaskList({
                   category={categoryFor(t)}
                   meta={metaFor(t)}
                   locked={isLocked(t)}
+                  // Done tasks on past days aren't crossed out.
+                  strike={!(t.scheduled_date && t.scheduled_date < today)}
                   onToggle={(is_completed) =>
                     actions.update(t, { is_completed })
                   }
