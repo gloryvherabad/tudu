@@ -100,6 +100,20 @@ export function HabitsView() {
     },
   ].filter((g) => g.category || g.habits.length > 0);
 
+  /** Quick add from a category's "Add habit" row. Returns false when it couldn't be saved. */
+  const createHabit = async (title: string, category_id: string | null) => {
+    const { data, error } = await supabase.from("habits").insert({ title, category_id }).select().single();
+    if (error) {
+      toast({
+        message: error.code === "23505" ? `You already have a habit called "${title}".` : "Couldn't save the habit. Try again.",
+        tone: "error",
+      });
+      return false;
+    }
+    setHabits(sortByTitle([...habits, data as Habit]));
+    return true;
+  };
+
   /** Adds the habit as a task on today's list. */
   const addToToday = async (h: Habit) => {
     const categoryId = h.category_id && categories.some((c) => c.id === h.category_id) ? h.category_id : null;
@@ -162,7 +176,7 @@ export function HabitsView() {
             When adding a task, type / and the first letters of a habit to add it in one step.
           </p>
           {groups.map((g) => (
-            <section key={g.id} aria-labelledby={`habits-${g.id}`} className="mb-4">
+            <section key={g.id} aria-labelledby={`habits-${g.id}`} className="group/cat mb-4">
               <div className="flex items-center gap-2 pb-1">
                 <h2 id={`habits-${g.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-subheading">
                   <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} />
@@ -219,6 +233,7 @@ export function HabitsView() {
                   </li>
                 ))}
               </ul>
+              <AddHabit onAdd={(title) => createHabit(title, g.category?.id ?? null)} />
             </section>
           ))}
         </>
@@ -269,5 +284,65 @@ export function HabitsView() {
         }
       />
     </>
+  );
+}
+
+/** "Add habit" under a category: shows on hover (always on touch), turns into a field when clicked. */
+function AddHabit({ onAdd }: { onAdd: (title: string) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+
+  const submit = async () => {
+    const title = value.trim();
+    if (!title) return;
+    setValue("");
+    if (!(await onAdd(title))) setValue(title);
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "flex min-h-touch w-full items-center gap-3 rounded-md text-left text-body text-text-secondary hover:text-text",
+          "pointer-fine:opacity-0 pointer-fine:group-hover/cat:opacity-100 pointer-fine:focus-visible:opacity-100",
+        )}
+      >
+        <Plus className="size-4 shrink-0" aria-hidden />
+        Add habit
+      </button>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+      className="flex min-h-touch items-center gap-3"
+    >
+      <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
+      <input
+        autoFocus
+        aria-label="New habit"
+        value={value}
+        maxLength={500}
+        placeholder="Habit name, then Enter"
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setValue("");
+            setOpen(false);
+          }
+        }}
+        onBlur={() => {
+          void submit();
+          setOpen(false);
+        }}
+        className="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-bg px-2 text-body focus:border-primary focus:outline-none"
+      />
+    </form>
   );
 }
