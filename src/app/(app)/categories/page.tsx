@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import { CategoriesView } from "./CategoriesView";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Categories" };
-
+/** Categories are managed on the Habits page now. */
 export default function CategoriesPage() {
-  return <CategoriesView />;
+  redirect("/habits");
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Ellipsis, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
+import { CalendarPlus, Ellipsis, Pencil, Plus, Repeat, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -12,19 +13,56 @@ import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/app-context";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { cn } from "@/lib/cn";
-import type { Habit } from "@/lib/types";
+import type { Category, CategoryColor, Habit } from "@/lib/types";
 import { HabitFormDialog } from "./HabitFormDialog";
 
 const sortByTitle = (hs: Habit[]) => [...hs].sort((a, b) => a.title.localeCompare(b.title));
 
-/** Manage habits: reusable tasks you can add from the "/" menu when creating a task. */
+/**
+ * Manage habits (reusable tasks you can add from the "/" menu) and the
+ * categories they, and your tasks, are grouped by.
+ */
 export function HabitsView() {
-  const { supabase, categories, habits, setHabits, today } = useApp();
+  const { supabase, categories, setCategories, habits, setHabits, today } = useApp();
   const router = useRouter();
   const toast = useToast();
   const [editing, setEditing] = useState<Habit | null | undefined>(undefined); // undefined = closed, null = new
   const [deleting, setDeleting] = useState<Habit | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null | undefined>(undefined); // undefined = closed, null = new
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [categoryDeleteBusy, setCategoryDeleteBusy] = useState(false);
+
+  const saveCategory = async (name: string, color: CategoryColor): Promise<string | null> => {
+    const req = editingCategory
+      ? supabase.from("categories").update({ name, color }).eq("id", editingCategory.id).select().single()
+      : supabase.from("categories").insert({ name, color }).select().single();
+    const { data, error } = await req;
+    if (error) {
+      return error.code === "23505" ? "You already have a category with that name." : "Couldn't save the category. Try again.";
+    }
+    const saved = data as Category;
+    setCategories([...categories.filter((c) => c.id !== saved.id), saved].sort((a, b) => a.name.localeCompare(b.name)));
+    toast({ message: editingCategory ? "Category updated" : `Created "${saved.name}"` });
+    setEditingCategory(undefined);
+    return null;
+  };
+
+  const deleteCategory = async () => {
+    if (!deletingCategory) return;
+    const gone = deletingCategory;
+    setCategoryDeleteBusy(true);
+    const { error } = await supabase.from("categories").delete().eq("id", gone.id);
+    setCategoryDeleteBusy(false);
+    if (error) {
+      toast({ message: "Couldn't delete the category. Try again.", tone: "error" });
+      return;
+    }
+    setCategories(categories.filter((c) => c.id !== gone.id));
+    setHabits(habits.map((h) => (h.category_id === gone.id ? { ...h, category_id: null } : h)));
+    toast({ message: `Deleted "${gone.name}". Its habits and tasks are now uncategorized.` });
+    setDeletingCategory(null);
+  };
 
   const saveHabit = async (title: string, category_id: string | null): Promise<string | null> => {
     const req = editing
@@ -43,16 +81,23 @@ export function HabitsView() {
     return null;
   };
 
-  // Habits grouped under their category, in category order; Uncategorized last. Empty groups are hidden.
+  // Every category with its habits, in name order; Uncategorized last, only when it has habits.
   const groups = [
-    ...categories.map((c) => ({ id: c.id, name: c.name, dot: CATEGORY_COLORS[c.color].dot, habits: habits.filter((h) => h.category_id === c.id) })),
+    ...categories.map((c) => ({
+      id: c.id,
+      category: c as Category | null,
+      name: c.name,
+      dot: CATEGORY_COLORS[c.color].dot,
+      habits: habits.filter((h) => h.category_id === c.id),
+    })),
     {
       id: "none",
+      category: null,
       name: "Uncategorized",
       dot: "border border-text-disabled",
       habits: habits.filter((h) => !h.category_id || !categories.some((c) => c.id === h.category_id)),
     },
-  ].filter((g) => g.habits.length > 0);
+  ].filter((g) => g.category || g.habits.length > 0);
 
   /** Adds the habit as a task on today's list. */
   const addToToday = async (h: Habit) => {
@@ -86,14 +131,20 @@ export function HabitsView() {
       <PageHeader
         title="Habits"
         actions={
-          <Button variant="primary" size="sm" onClick={() => setEditing(null)}>
-            <Plus className="size-4" aria-hidden />
-            New habit
-          </Button>
+          <>
+            <Button size="sm" onClick={() => setEditingCategory(null)}>
+              <Tag className="size-4" aria-hidden />
+              <span className="max-sm:sr-only">New category</span>
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setEditing(null)}>
+              <Plus className="size-4" aria-hidden />
+              New habit
+            </Button>
+          </>
         }
       />
 
-      {habits.length === 0 ? (
+      {habits.length === 0 && categories.length === 0 ? (
         <EmptyState
           icon={<Repeat className="size-8" />}
           title="No habits yet"
@@ -111,10 +162,31 @@ export function HabitsView() {
           </p>
           {groups.map((g) => (
             <section key={g.id} aria-labelledby={`habits-${g.id}`} className="mb-4">
-              <h2 id={`habits-${g.id}`} className="flex items-center gap-2 pb-1 text-subheading">
-                <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} />
-                <span className="truncate">{g.name}</span>
-              </h2>
+              <div className="flex items-center gap-2 pb-1">
+                <h2 id={`habits-${g.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-subheading">
+                  <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} />
+                  <span className="truncate">{g.name}</span>
+                </h2>
+                {g.category && (
+                  <Menu
+                    items={[
+                      { label: "Edit name and color", icon: <Pencil className="size-4" />, onSelect: () => setEditingCategory(g.category) },
+                      { label: "Delete category", icon: <Trash2 className="size-4" />, destructive: true, onSelect: () => setDeletingCategory(g.category) },
+                    ]}
+                    trigger={(p) => (
+                      <button
+                        {...p}
+                        type="button"
+                        aria-label={`Actions for category "${g.name}"`}
+                        className="inline-flex size-9 items-center justify-center rounded-md text-text-secondary hover:bg-hover hover:text-text"
+                      >
+                        <Ellipsis className="size-4" aria-hidden />
+                      </button>
+                    )}
+                  />
+                )}
+              </div>
+              {g.habits.length === 0 && <p className="py-1.5 text-secondary text-text-secondary">No habits yet</p>}
               <ul>
                 {g.habits.map((h) => (
                   <li key={h.id} className="flex min-h-touch items-center gap-3">
@@ -144,6 +216,28 @@ export function HabitsView() {
           ))}
         </>
       )}
+
+      <CategoryFormDialog
+        open={editingCategory !== undefined}
+        category={editingCategory ?? null}
+        onClose={() => setEditingCategory(undefined)}
+        onSave={saveCategory}
+      />
+
+      <Dialog
+        open={deletingCategory !== null}
+        onClose={() => setDeletingCategory(null)}
+        title={`Delete "${deletingCategory?.name ?? ""}"?`}
+        description="Its habits and tasks become uncategorized. Nothing is deleted."
+        footer={
+          <>
+            <Button onClick={() => setDeletingCategory(null)}>Cancel</Button>
+            <Button variant="danger" loading={categoryDeleteBusy} onClick={deleteCategory}>
+              Delete category
+            </Button>
+          </>
+        }
+      />
 
       <HabitFormDialog
         open={editing !== undefined}

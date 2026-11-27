@@ -9,12 +9,15 @@ export function TaskCheck({
   onChange,
   disabled,
   label,
+  size = "md",
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   /** Accessible label, e.g. the task title. */
   label: string;
+  /** "sm" is 15% smaller, for compact views like the week board. */
+  size?: "sm" | "md";
 }) {
   return (
     <button
@@ -25,7 +28,8 @@ export function TaskCheck({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "group/check relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border",
+        "group/check relative inline-flex shrink-0 items-center justify-center rounded-full border",
+        size === "sm" ? "size-[17px]" : "size-5",
         "transition-colors duration-150 ease-out",
         "after:absolute after:-inset-3 after:content-['']", // 44px hit area
         checked
@@ -34,7 +38,7 @@ export function TaskCheck({
         "disabled:cursor-not-allowed disabled:opacity-60",
       )}
     >
-      <Check className="size-3" strokeWidth={3} aria-hidden />
+      <Check className={size === "sm" ? "size-2.5" : "size-3"} strokeWidth={3} aria-hidden />
     </button>
   );
 }
