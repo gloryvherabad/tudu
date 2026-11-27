@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Ellipsis, Trash2 } from "lucide-react";
+import { CalendarDays, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Category } from "@/lib/types";
 import { formatTimeOfDay } from "@/lib/time";
@@ -54,10 +54,13 @@ export function TaskItem({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (editing) {
+    if (!editing) return;
+    // Wait a tick so a closing menu can't take focus back from the field.
+    const id = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
-    }
+    }, 0);
+    return () => clearTimeout(id);
   }, [editing]);
 
   const startEditing = () => {
@@ -73,6 +76,9 @@ export function TaskItem({
   };
 
   const items: MenuItem[] = [
+    ...(onRename && !locked
+      ? [{ label: "Edit", icon: <Pencil className="size-4" />, onSelect: startEditing }]
+      : []),
     ...(onReschedule
       ? [
           {
@@ -96,7 +102,14 @@ export function TaskItem({
   ];
 
   return (
-    <div className="group/task flex gap-3 py-1.5 pointer-fine:hover:bg-surface/60">
+    <div
+      className="group/task flex gap-3 py-1.5 pointer-fine:hover:bg-surface/60"
+      // Double-click anywhere on the row (except the checkbox and menu) to edit.
+      onDoubleClick={(e) => {
+        if ((e.target as HTMLElement).closest("button, input")) return;
+        startEditing();
+      }}
+    >
       <div className="pt-0.5">
         <TaskCheck
           checked={completed}
@@ -140,22 +153,22 @@ export function TaskItem({
                 className="-mx-1 w-full rounded-sm bg-transparent px-1 text-body outline-none ring-1 ring-border-strong focus:ring-primary"
               />
             ) : (
-              <button
-                type="button"
-                onClick={startEditing}
-                disabled={locked || !onRename}
-                aria-label={locked ? `${title} (read-only)` : `Edit "${title}"`}
+              <p
                 className={cn(
-                  "-mx-1 block w-full rounded-sm px-1 text-left text-body break-words",
-                  "disabled:cursor-default",
+                  "text-body break-words select-none",
+                  locked || !onRename ? "cursor-default" : "cursor-text",
                   completed && strike && "line-through",
                   completed || locked ? "text-text-disabled" : "text-text",
                 )}
+                title={locked || !onRename ? undefined : "Double-click to edit"}
               >
                 {title}
-              </button>
+              </p>
             )}
           </div>
+          {category && !editing && (
+            <CategoryBadge name={category.name} color={category.color} className="shrink-0 pt-0.5" />
+          )}
           {!locked && items.length > 0 && (
             <Menu
               items={items}
@@ -179,11 +192,8 @@ export function TaskItem({
           )}
         </div>
 
-        {(meta || category) && (
-          <div className="mt-0.5 flex min-h-5 items-center justify-between gap-3">
-            <span className={cn("text-secondary", locked ? "text-text-disabled" : "text-text-secondary")}>{meta}</span>
-            {category && <CategoryBadge name={category.name} color={category.color} />}
-          </div>
+        {meta && (
+          <p className={cn("mt-0.5 text-secondary", locked ? "text-text-disabled" : "text-text-secondary")}>{meta}</p>
         )}
       </div>
     </div>
