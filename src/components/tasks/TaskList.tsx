@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Tag } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarCheck, Tag } from "lucide-react";
 import {
   closestCenter,
   DndContext,
@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/cn";
 import { TaskInput } from "@/components/ui/TaskInput";
 import { TaskItem } from "@/components/ui/TaskItem";
+import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/app-context";
 import {
   formatDate,
@@ -112,6 +113,7 @@ export function TaskList({
   emptyText?: string;
 }) {
   const { today, profile, categories, habits, loadSuggestions } = useApp();
+  const toast = useToast();
   const [rescheduling, setRescheduling] = useState<Task | null>(null);
   const [categorizing, setCategorizing] = useState<Task | null>(null);
 
@@ -283,6 +285,19 @@ export function TaskList({
                   }
                   onDelete={() => actions.remove(t)}
                   menuItems={[
+                    // Put any open task (Inbox, project, another day) on today's list.
+                    ...(!t.is_completed && t.scheduled_date !== today
+                      ? [
+                          {
+                            label: "Do today",
+                            icon: <CalendarCheck className="size-4" />,
+                            onSelect: async () => {
+                              if (await actions.update(t, { scheduled_date: today }))
+                                toast({ message: `Added "${t.title}" to today` });
+                            },
+                          },
+                        ]
+                      : []),
                     {
                       label: "Change category",
                       icon: <Tag className="size-4" />,

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { IconButton } from "@/components/ui/IconButton";
 import { Menu } from "@/components/ui/Menu";
 import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/app-context";
@@ -189,9 +190,15 @@ export function HabitsView() {
               {g.habits.length === 0 && <p className="py-1.5 text-secondary text-text-secondary">No habits yet</p>}
               <ul>
                 {g.habits.map((h) => (
-                  <li key={h.id} className="flex min-h-touch items-center gap-3">
+                  <li key={h.id} className="group/habit flex min-h-touch items-center gap-3">
                     <Repeat className="size-4 shrink-0 text-text-secondary" aria-hidden />
                     <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
+                    <IconButton
+                      label="Add to today"
+                      icon={<CalendarPlus className="size-4" />}
+                      onClick={() => void addToToday(h)}
+                      className="pointer-fine:opacity-0 pointer-fine:group-hover/habit:opacity-100 pointer-fine:focus-visible:opacity-100"
+                    />
                     <Menu
                       items={[
                         { label: "Add to today", icon: <CalendarPlus className="size-4" />, onSelect: () => void addToToday(h) },
