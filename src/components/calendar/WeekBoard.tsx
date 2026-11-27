@@ -80,6 +80,7 @@ export function WeekBoard({
                       onChange={(v) => void actions.update(t, { is_completed: v })}
                       disabled={locked}
                       label={t.title}
+                      size="sm"
                     />
                     <button
                       type="button"
