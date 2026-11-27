@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Ellipsis, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
+import { CalendarPlus, Ellipsis, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -18,7 +19,8 @@ const sortByTitle = (hs: Habit[]) => [...hs].sort((a, b) => a.title.localeCompar
 
 /** Manage habits: reusable tasks you can add from the "/" menu when creating a task. */
 export function HabitsView() {
-  const { supabase, categories, habits, setHabits } = useApp();
+  const { supabase, categories, habits, setHabits, today } = useApp();
+  const router = useRouter();
   const toast = useToast();
   const [editing, setEditing] = useState<Habit | null | undefined>(undefined); // undefined = closed, null = new
   const [deleting, setDeleting] = useState<Habit | null>(null);
@@ -51,6 +53,19 @@ export function HabitsView() {
       habits: habits.filter((h) => !h.category_id || !categories.some((c) => c.id === h.category_id)),
     },
   ].filter((g) => g.habits.length > 0);
+
+  /** Adds the habit as a task on today's list. */
+  const addToToday = async (h: Habit) => {
+    const categoryId = h.category_id && categories.some((c) => c.id === h.category_id) ? h.category_id : null;
+    const { error } = await supabase
+      .from("tasks")
+      .insert({ title: h.title, scheduled_date: today, category_id: categoryId });
+    if (error) {
+      toast({ message: "Couldn't add it to today. Try again.", tone: "error" });
+      return;
+    }
+    toast({ message: `Added "${h.title}" to today`, action: { label: "View", onClick: () => router.push("/today") } });
+  };
 
   const deleteHabit = async () => {
     if (!deleting) return;
@@ -107,6 +122,7 @@ export function HabitsView() {
                     <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
                     <Menu
                       items={[
+                        { label: "Add to today", icon: <CalendarPlus className="size-4" />, onSelect: () => void addToToday(h) },
                         { label: "Edit habit", icon: <Pencil className="size-4" />, onSelect: () => setEditing(h) },
                         { label: "Delete habit", icon: <Trash2 className="size-4" />, destructive: true, onSelect: () => setDeleting(h) },
                       ]}
