@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarPlus, Ellipsis, Pencil, Plus, Repeat, Tag, Trash2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { CalendarPlus, ChevronRight, Ellipsis, Pencil, Plus, Repeat, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CategoryFormDialog } from "@/components/categories/CategoryFormDialog";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -178,13 +178,18 @@ export function HabitsView() {
             When adding a task, type / and the first letters of a habit to add it in one step.
           </p>
           {groups.map((g) => (
-            <section key={g.id} aria-labelledby={`habits-${g.id}`} className="group/cat mb-4">
-              <div className="flex items-center gap-2 pb-1">
-                <h2 id={`habits-${g.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-subheading">
+            <CategorySection
+              key={g.id}
+              id={g.id}
+              heading={
+                <>
                   <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} style={g.dotStyle} />
                   <span className="truncate">{g.name}</span>
-                </h2>
-                {g.category && (
+                  <span className="shrink-0 text-secondary font-normal text-text-secondary">{g.habits.length}</span>
+                </>
+              }
+              menu={
+                g.category && (
                   <Menu
                     items={[
                       { label: "Edit name and color", icon: <Pencil className="size-4" />, onSelect: () => setEditingCategory(g.category) },
@@ -201,8 +206,9 @@ export function HabitsView() {
                       </button>
                     )}
                   />
-                )}
-              </div>
+                )
+              }
+            >
               {g.habits.length === 0 && <p className="py-1.5 text-secondary text-text-secondary">No habits yet</p>}
               <ul>
                 {g.habits.map((h) => (
@@ -236,7 +242,7 @@ export function HabitsView() {
                 ))}
               </ul>
               <AddHabit onAdd={(title) => createHabit(title, g.category?.id ?? null)} />
-            </section>
+            </CategorySection>
           ))}
         </>
       )}
@@ -289,7 +295,7 @@ export function HabitsView() {
   );
 }
 
-/** "Add habit" under a category: shows on hover (always on touch), turns into a field when clicked. */
+/** "Add habit" at the end of an open category; turns into a field when clicked. */
 function AddHabit({ onAdd }: { onAdd: (title: string) => Promise<boolean> }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -308,7 +314,6 @@ function AddHabit({ onAdd }: { onAdd: (title: string) => Promise<boolean> }) {
         onClick={() => setOpen(true)}
         className={cn(
           "flex min-h-touch w-full items-center gap-3 rounded-md text-left text-body text-text-secondary hover:text-text",
-          "pointer-fine:opacity-0 pointer-fine:group-hover/cat:opacity-100 pointer-fine:focus-visible:opacity-100",
         )}
       >
         <Plus className="size-4 shrink-0" aria-hidden />
@@ -346,5 +351,79 @@ function AddHabit({ onAdd }: { onAdd: (title: string) => Promise<boolean> }) {
         className="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-bg px-2 text-body focus:border-primary focus:outline-none"
       />
     </form>
+  );
+}
+
+/**
+ * A category on the Habits page. Collapsed by default: click the heading to
+ * keep it open, or hover it with a mouse to peek (it stays open while you
+ * type or use a menu inside it).
+ */
+function CategorySection({
+  id,
+  heading,
+  menu,
+  children,
+}: {
+  id: string;
+  heading: ReactNode;
+  menu?: ReactNode;
+  children: ReactNode;
+}) {
+  const [pinned, setPinned] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const open = pinned || hovered || focused;
+  const panelId = `habits-${id}-panel`;
+
+  const canHover = () => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  return (
+    <section
+      aria-labelledby={`habits-${id}`}
+      className="group/cat mb-1"
+      onMouseEnter={() => {
+        if (!canHover()) return;
+        // A short delay so moving the mouse past a category doesn't open it.
+        timer.current = setTimeout(() => setHovered(true), 200);
+      }}
+      onMouseLeave={() => {
+        if (timer.current) clearTimeout(timer.current);
+        setHovered(false);
+      }}
+      // Keep it open while typing or using a menu inside the habit list.
+      onFocus={(e) => document.getElementById(panelId)?.contains(e.target) && setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => {
+            setPinned(!open);
+            setHovered(false);
+          }}
+          className="flex min-h-touch min-w-0 flex-1 items-center gap-2 rounded-md text-left"
+        >
+          <ChevronRight
+            aria-hidden
+            className={cn("size-4 shrink-0 text-text-secondary transition-transform duration-150", open && "rotate-90")}
+          />
+          <h2 id={`habits-${id}`} className="flex min-w-0 items-center gap-2 text-subheading">
+            {heading}
+          </h2>
+        </button>
+        {menu}
+      </div>
+      {open && (
+        <div id={panelId} className="pb-3 pl-6">
+          {children}
+        </div>
+      )}
+    </section>
   );
 }
