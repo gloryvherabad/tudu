@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { fillPaint } from "@/lib/categories";
 import { addDays, formatDate, type ISODate } from "@/lib/dates";
 import { formatTimeOfDay } from "@/lib/time";
 import { useApp } from "@/lib/app-context";
@@ -10,7 +10,7 @@ import type { Category, Task } from "@/lib/types";
 const MAX_CHIPS = 3;
 
 /** Chip colors: filled with the category color, or neutral when uncategorized. */
-const chipColor = (c: Category | undefined) => (c ? `${CATEGORY_COLORS[c.color].fill} text-text` : "bg-active text-text");
+const chipColor = (c: Category | undefined) => (c ? `${fillPaint(c.color).className} text-text` : "bg-active text-text");
 
 /**
  * Full month grid. Each date shows its real tasks as filled chips colored by
@@ -106,6 +106,7 @@ export function MonthGrid({
                         chipColor(categoryOf(t)),
                         t.is_completed && cn("opacity-50", d >= today && "line-through"),
                       )}
+                      style={categoryOf(t) ? fillPaint(categoryOf(t)!.color).style : undefined}
                     >
                       {t.start_time && (
                         <span className="hidden shrink-0 sm:inline">{formatTimeOfDay(t.start_time)}</span>

@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Plus, Repeat } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { dotPaint } from "@/lib/categories";
 import type { Category, Habit } from "@/lib/types";
 import { ADD_CATEGORY, NewCategoryDialog } from "@/components/categories/NewCategoryDialog";
 import { CategoryBadge } from "./CategoryBadge";
@@ -308,8 +308,9 @@ export function TaskInput({
                 aria-hidden
                 className={cn(
                   "pointer-events-none absolute left-2.5 size-2 rounded-full",
-                  selected ? CATEGORY_COLORS[selected.color].dot : "border border-text-disabled",
+                  selected ? dotPaint(selected.color).className : "border border-text-disabled",
                 )}
+                style={selected ? dotPaint(selected.color).style : undefined}
               />
               <select
                 id={selectId}

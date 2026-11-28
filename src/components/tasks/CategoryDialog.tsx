@@ -3,7 +3,8 @@
 import { Check } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { cn } from "@/lib/cn";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { dotPaint } from "@/lib/categories";
+import type { CSSProperties } from "react";
 import type { Category } from "@/lib/types";
 
 /** Pick one category for a task, or none. */
@@ -20,9 +21,9 @@ export function CategoryDialog({
   onClose: () => void;
   onSave: (categoryId: string | null) => void;
 }) {
-  const options: Array<{ id: string | null; name: string; dot: string }> = [
+  const options: Array<{ id: string | null; name: string; dot: string; dotStyle?: CSSProperties }> = [
     { id: null, name: "No category", dot: "border border-text-disabled" },
-    ...categories.map((c) => ({ id: c.id, name: c.name, dot: CATEGORY_COLORS[c.color].dot })),
+    ...categories.map((c) => ({ id: c.id, name: c.name, dot: dotPaint(c.color).className, dotStyle: dotPaint(c.color).style })),
   ];
 
   return (
@@ -47,7 +48,7 @@ export function CategoryDialog({
                 selected && "font-medium",
               )}
             >
-              <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", o.dot)} />
+              <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", o.dot)} style={o.dotStyle} />
               <span className="flex-1 truncate">{o.name}</span>
               {selected && <Check className="size-4" aria-hidden />}
             </button>

@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Pipette } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { cn } from "@/lib/cn";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { CATEGORY_COLORS, PRESET_COLORS, isHexColor } from "@/lib/categories";
 import type { Category, CategoryColor } from "@/lib/types";
 
-const COLORS = Object.keys(CATEGORY_COLORS) as CategoryColor[];
 
 /** Create a category, or rename / recolor an existing one. */
 export function CategoryFormDialog({
@@ -96,7 +95,7 @@ export function CategoryFormDialog({
           Color
         </p>
         <div role="radiogroup" aria-labelledby={`${nameId}-color`} className="mt-2 flex flex-wrap gap-2">
-          {COLORS.map((c) => (
+          {PRESET_COLORS.map((c) => (
             <button
               key={c}
               type="button"
@@ -114,8 +113,49 @@ export function CategoryFormDialog({
               </span>
             </button>
           ))}
+
+          {/* Any color: opens the device's color picker. */}
+          <label
+            className={cn(
+              "relative inline-flex size-9 cursor-pointer items-center justify-center rounded-full border focus-within:outline focus-within:outline-1 focus-within:outline-offset-2 focus-within:outline-primary",
+              isHexColor(color) ? "border-primary" : "border-transparent hover:border-border-strong",
+            )}
+            title="Pick any color"
+          >
+            <span
+              className={cn(
+                "inline-flex size-6 items-center justify-center rounded-full ring-1 ring-inset ring-border-strong",
+                isHexColor(color) ? (lightOn(color) ? "text-text" : "text-on-primary") : "bg-surface text-text-secondary",
+              )}
+              style={isHexColor(color) ? { backgroundColor: color } : undefined}
+            >
+              {isHexColor(color) ? (
+                <Check className="size-3.5" strokeWidth={3} aria-hidden />
+              ) : (
+                <Pipette className="size-3.5" aria-hidden />
+              )}
+            </span>
+            <input
+              type="color"
+              role="radio"
+              aria-checked={isHexColor(color)}
+              aria-label={isHexColor(color) ? `Custom color ${color.toUpperCase()}` : "Pick any color"}
+              value={isHexColor(color) ? color : "#a3c4f3"}
+              onChange={(e) => setColor(e.target.value as CategoryColor)}
+              className="absolute inset-0 size-full cursor-pointer opacity-0"
+            />
+          </label>
         </div>
+        {isHexColor(color) && (
+          <p className="mt-2 text-secondary text-text-secondary">Custom color {color.toUpperCase()}</p>
+        )}
       </form>
     </Dialog>
   );
+}
+
+/** True when dark text reads well on this color. */
+function lightOn(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b >= 0.5;
 }

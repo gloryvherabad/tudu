@@ -15,8 +15,8 @@ import {
   TaskItem,
   useToast,
 } from "@/components/ui";
-import { CATEGORY_COLORS } from "@/lib/categories";
-import type { CategoryColor } from "@/lib/types";
+import { CATEGORY_COLORS, PRESET_COLORS } from "@/lib/categories";
+
 
 const COLORS = [
   ["bg", "Background"],
@@ -79,7 +79,7 @@ export function DesignSystem() {
         </div>
         <h3 className="mt-6 mb-3 text-subheading">Category colors</h3>
         <div className="flex flex-wrap gap-4">
-          {(Object.keys(CATEGORY_COLORS) as CategoryColor[]).map((c) => (
+          {PRESET_COLORS.map((c) => (
             <span
               key={c}
               role="img"
