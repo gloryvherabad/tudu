@@ -168,6 +168,7 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
     date: ISODate | null,
     categoryId: string | null = null,
     projectId: string | null = null,
+    habitId: string | null = null,
   ) => {
     // "8am gym" becomes the title "gym" at 08:00.
     const parsed = parseLeadingTime(rawTitle);
@@ -180,6 +181,7 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
       user_id: "",
       category_id: categoryId,
       project_id: projectId,
+      habit_id: habitId,
       title,
       start_time,
       scheduled_date: date,
@@ -191,11 +193,21 @@ export function useTasks(query: TaskQuery, options: { enabled?: boolean } = {}) 
       sort_order: Date.now(),
     };
     replace(tempId, temp);
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({ title, start_time, scheduled_date: date, category_id: categoryId, ...(projectId ? { project_id: projectId } : {}) })
-      .select()
-      .single();
+    const row = {
+      title,
+      start_time,
+      scheduled_date: date,
+      category_id: categoryId,
+      ...(projectId ? { project_id: projectId } : {}),
+      ...(habitId ? { habit_id: habitId } : {}),
+    };
+    let { data, error } = await supabase.from("tasks").insert(row).select().single();
+    // Before migration 0009 there's no habit_id column: save the task without the link.
+    if (error?.code === "PGRST204" && habitId) {
+      const { habit_id: _unused, ...withoutHabit } = row as typeof row & { habit_id?: string };
+      void _unused;
+      ({ data, error } = await supabase.from("tasks").insert(withoutHabit).select().single());
+    }
     if (error) {
       replace(tempId, null);
       toast({ message: friendlyError(error), tone: "error" });

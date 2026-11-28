@@ -52,6 +52,8 @@ export type Task = {
   category_id: string | null;
   /** Project the task belongs to. Missing until the projects migration (0007) has been run. */
   project_id?: string | null;
+  /** Habit the task was added from, so renaming the habit updates it. Missing until migration 0009. */
+  habit_id?: string | null;
   title: string;
   /** Time of day ("HH:MM" or "HH:MM:SS"), or null when the task has no time. */
   start_time: string | null;
