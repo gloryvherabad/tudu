@@ -40,7 +40,9 @@ export function ProjectView({ id }: { id: string }) {
   }, [supabase, id]);
 
   const actions = {
-    create: (title: string, date: string | null, categoryId: string | null = null) => create(title, date, categoryId, id),
+    // New tasks always go in this project.
+    create: (...[title, date, categoryId = null, , habitId = null]: Parameters<typeof create>) =>
+      create(title, date, categoryId, id, habitId),
     update,
     remove,
     reorder,

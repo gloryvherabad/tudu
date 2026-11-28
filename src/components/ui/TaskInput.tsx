@@ -26,7 +26,8 @@ export function TaskInput({
   loadSuggestions,
   placeholder,
 }: {
-  onCreate: (title: string, categoryId: string | null) => void | Promise<void>;
+  /** habitId is set when the task was picked from a habit. */
+  onCreate: (title: string, categoryId: string | null, habitId?: string) => void | Promise<void>;
   categories?: Category[];
   habits?: Habit[];
   defaultCategoryId?: string | null;
@@ -139,7 +140,7 @@ export function TaskInput({
   /** Picking a habit adds the task straight away. */
   const addHabit = async (h: Habit) => {
     setValue("");
-    await onCreate(h.title, h.category_id && findCategory(h.category_id) ? h.category_id : null);
+    await onCreate(h.title, h.category_id && findCategory(h.category_id) ? h.category_id : null, h.id);
     inputRef.current?.focus();
   };
 

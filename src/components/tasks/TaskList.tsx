@@ -326,8 +326,8 @@ export function TaskList({
             habits={habits}
             defaultCategoryId={defaultCategoryId}
             loadSuggestions={loadSuggestions}
-            onCreate={(title, categoryId) =>
-              actions.create(title, addTo, categoryId)
+            onCreate={(title, categoryId, habitId) =>
+              actions.create(title, addTo, categoryId, null, habitId ?? null)
             }
           />
         </div>

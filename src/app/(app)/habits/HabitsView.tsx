@@ -77,7 +77,26 @@ export function HabitsView() {
     }
     const saved = data as Habit;
     setHabits(sortByTitle([...habits.filter((h) => h.id !== saved.id), saved]));
-    toast({ message: editing ? "Habit updated" : `Created "${saved.title}"` });
+    let synced = 0;
+    if (editing && (editing.title !== saved.title || editing.category_id !== saved.category_id)) {
+      // Keep tasks added from this habit in step: today, upcoming and undated ones.
+      // Past days stay as they were (and lock after 48 hours anyway).
+      const { data: rows } = await supabase
+        .from("tasks")
+        .update({ title: saved.title, category_id: saved.category_id })
+        .eq("habit_id", saved.id)
+        .is("deleted_at", null)
+        .or(`scheduled_date.is.null,scheduled_date.gte.${today}`)
+        .select("id");
+      synced = rows?.length ?? 0;
+    }
+    toast({
+      message: editing
+        ? synced > 0
+          ? `Habit updated, along with ${synced} ${synced === 1 ? "task" : "tasks"} from it`
+          : "Habit updated"
+        : `Created "${saved.title}"`,
+    });
     setEditing(undefined);
     return null;
   };
@@ -119,9 +138,10 @@ export function HabitsView() {
   /** Adds the habit as a task on today's list. */
   const addToToday = async (h: Habit) => {
     const categoryId = h.category_id && categories.some((c) => c.id === h.category_id) ? h.category_id : null;
-    const { error } = await supabase
-      .from("tasks")
-      .insert({ title: h.title, scheduled_date: today, category_id: categoryId });
+    const row = { title: h.title, scheduled_date: today, category_id: categoryId };
+    let { error } = await supabase.from("tasks").insert({ ...row, habit_id: h.id });
+    // Before migration 0009 there's no habit_id column: add the task without the link.
+    if (error?.code === "PGRST204") ({ error } = await supabase.from("tasks").insert(row));
     if (error) {
       toast({ message: "Couldn't add it to today. Try again.", tone: "error" });
       return;
