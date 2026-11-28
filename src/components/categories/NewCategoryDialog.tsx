@@ -24,7 +24,7 @@ export function NewCategoryDialog({
   const save = async (name: string, color: CategoryColor): Promise<string | null> => {
     const { data, error } = await supabase.from("categories").insert({ name, color }).select().single();
     if (error) {
-      return error.code === "23505" ? "You already have a category with that name." : "Couldn't save the category. Try again.";
+      return error.code === "23505" ? "You already have a category with that name." : error.code === "23514" ? "Custom colors need a one-time database update (migration 0008). Pick a preset for now." : "Couldn't save the category. Try again.";
     }
     const saved = data as Category;
     setCategories([...categories, saved].sort((a, b) => a.name.localeCompare(b.name)));

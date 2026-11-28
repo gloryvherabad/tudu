@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { fillPaint } from "@/lib/categories";
 import { addDays, formatDate, isLockedDate, type ISODate } from "@/lib/dates";
 import { formatTimeOfDay } from "@/lib/time";
 import { useApp } from "@/lib/app-context";
@@ -70,10 +70,12 @@ export function WeekBoard({
             <ul className="mt-2 flex flex-col gap-1">
               {ordered.map((t) => {
                 const c = categories.find((cat) => cat.id === t.category_id);
+                const fill = c ? fillPaint(c.color) : { className: "bg-surface" };
                 return (
                   <li
                     key={t.id}
-                    className={cn("flex items-start gap-1.5 rounded-md p-1.5", c ? CATEGORY_COLORS[c.color].fill : "bg-surface")}
+                    className={cn("flex items-start gap-1.5 rounded-md p-1.5", fill.className)}
+                    style={fill.style}
                   >
                     <TaskCheck
                       checked={t.is_completed}

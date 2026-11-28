@@ -1,4 +1,5 @@
-export type CategoryColor =
+/** One of the preset pastel colors. */
+export type NamedCategoryColor =
   | "gray"
   | "blue"
   | "green"
@@ -7,6 +8,9 @@ export type CategoryColor =
   | "purple"
   | "red"
   | "yellow";
+
+/** A preset name, or any color picked with the color picker as "#rrggbb". */
+export type CategoryColor = NamedCategoryColor | `#${string}`;
 
 export type Profile = {
   id: string;

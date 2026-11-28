@@ -12,7 +12,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Menu } from "@/components/ui/Menu";
 import { useToast } from "@/components/ui/Toast";
 import { useApp } from "@/lib/app-context";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { dotPaint } from "@/lib/categories";
 import { cn } from "@/lib/cn";
 import type { Category, CategoryColor, Habit } from "@/lib/types";
 import { HabitFormDialog } from "./HabitFormDialog";
@@ -40,7 +40,7 @@ export function HabitsView() {
       : supabase.from("categories").insert({ name, color }).select().single();
     const { data, error } = await req;
     if (error) {
-      return error.code === "23505" ? "You already have a category with that name." : "Couldn't save the category. Try again.";
+      return error.code === "23505" ? "You already have a category with that name." : error.code === "23514" ? "Custom colors need a one-time database update (migration 0008). Pick a preset for now." : "Couldn't save the category. Try again.";
     }
     const saved = data as Category;
     setCategories([...categories.filter((c) => c.id !== saved.id), saved].sort((a, b) => a.name.localeCompare(b.name)));
@@ -88,7 +88,8 @@ export function HabitsView() {
       id: c.id,
       category: c as Category | null,
       name: c.name,
-      dot: CATEGORY_COLORS[c.color].dot,
+      dot: dotPaint(c.color).className,
+      dotStyle: dotPaint(c.color).style,
       habits: habits.filter((h) => h.category_id === c.id),
     })),
     {
@@ -96,6 +97,7 @@ export function HabitsView() {
       category: null,
       name: "Uncategorized",
       dot: "border border-text-disabled",
+      dotStyle: undefined,
       habits: habits.filter((h) => !h.category_id || !categories.some((c) => c.id === h.category_id)),
     },
   ].filter((g) => g.category || g.habits.length > 0);
@@ -179,7 +181,7 @@ export function HabitsView() {
             <section key={g.id} aria-labelledby={`habits-${g.id}`} className="group/cat mb-4">
               <div className="flex items-center gap-2 pb-1">
                 <h2 id={`habits-${g.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-subheading">
-                  <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} />
+                  <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", g.dot)} style={g.dotStyle} />
                   <span className="truncate">{g.name}</span>
                 </h2>
                 {g.category && (
